@@ -1,0 +1,14 @@
+CC=gcc
+CFLAGS=-Wall -O3 -std=c99 
+LDFLAGS=-lm
+
+dijkstra_skiplist_total:dijkstra_skiplist_total.o sl_pq.o util.o
+	$(CC) $(CFLAGS) -DTOTAL  -o dijkstra_skiplist sl_pq.o util.o dijkstra_skiplist.o -lm
+dijkstra_skiplist_total.o:dijkstra_skiplist.c
+	$(CC) $(CFLAGS)-DTOTAL -c dijkstra_skiplist.c
+sl_pq.o: sl_pq.c sl_pq.h
+	$(CC) $(CFLAGS) -c -o sl_pq.o sl_pq.c -lm
+
+util.o:util.c util.h
+	$(CC) $(CFLAGS) -c -o util.o util.c
+
