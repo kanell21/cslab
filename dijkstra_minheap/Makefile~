@@ -25,9 +25,8 @@ dijkstra_minheap_prev: dijkstra_minheap_prev.c
 dijkstra_minheap_optim: dijkstra_minheap_optim.c
 	$(CC) -Wall -O3 -std=c99 -DTOTAL dijkstra_minheap_optim.c  -o dijkstra_minheap_optim
 dijkstra_minheap_adjarr_optim: dijkstra_minheap_adjarr_optim.c
-	$(CC)  -Wall -O3 -std=c99  -DTOTAL dijkstra_minheap_adjarr_optim.c  -o dijkstra_minheap_adjarr_optim
-dijkstra_minheap_adjarr_uni_optim: dijkstra_minheap_adjarr_uni_optim.c
-	$(CC)  -Wall  -std=c99 -fprefetch-loop-arrays -DTOTAL dijkstra_minheap_adjarr_uni_optim.c  -o dijkstra_minheap_adjarr_uni_optim
+	$(CC)  -Wall -O3 -std=c99 -fprefetch-loop-arrays -DTOTAL dijkstra_minheap_adjarr_optim.c  -o dijkstra_minheap_adjarr_optim
+
 dijkstra_minheap_optim_noprev: dijkstra_minheap_optim.c
 	$(CC) -Wall -O3 -std=c99 -DTOTAL dijkstra_minheap_optim_noprev.c  -o dijkstra_minheap_optim_noprev
 dijkstra_minheap_prefetch: dijkstra_minheap_prefetch.c
