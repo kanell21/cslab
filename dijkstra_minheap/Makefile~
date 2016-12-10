@@ -51,7 +51,7 @@ dijkstra_minheap_prefetch: dijkstra_minheap_prefetch.c
 
 
 transaction.o:transaction.c
-	gcc -Wall -g -fopenmp -mrtm -c transaction.c
+	gcc -Wall -fopenmp -mrtm -c transaction.c
 
 
 
