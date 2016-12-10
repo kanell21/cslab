@@ -1,2 +1,2 @@
 # cslab
-Dijkstra Implementation
+Dijkstra's algorithm implementation
