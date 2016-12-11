@@ -28,6 +28,8 @@ dijkstra_minheap_adjarr_optim: dijkstra_minheap_adjarr_optim.c
 	$(CC)  -Wall -O3 -std=c99  -DUPDATE dijkstra_minheap_adjarr_optim.c  -o dijkstra_minheap_adjarr_optim
 dijkstra_minheap_fullprefetch:dijkstra_minheap_fullprefetch.c
 	$(CC)  -Wall -O3 -std=c99  -DUPDATE dijkstra_minheap_fullprefetch.c  -o dijkstra_minheap_fullprefetch
+dijkstra_minheap_fullprefetch:dijkstra_minheap_fullprefetch.c
+	$(CC)  -Wall -O3 -std=c99  -DUPDATE dijkstra_minheap_fullprefetch_clever.c  -o dijkstra_minheap_fullprefetch_clever
 dijkstra_minheap_2sym:dijkstra_minheap_2sym.c
 	$(CC)  -Wall -O3 -std=c99 -fopenmp -DUPDATE dijkstra_minheap_2sym.c  -o dijkstra_minheap_2sym
 dijkstra_minheap_2sym_transact:dijkstra_minheap_2sym_transact.c transaction.o
@@ -51,7 +53,7 @@ dijkstra_minheap_prefetch: dijkstra_minheap_prefetch.c
 
 
 transaction.o:transaction.c
-	gcc -Wall -fopenmp -mrtm -c transaction.c
+	gcc -Wall -g -fopenmp -mrtm -c transaction.c
 
 
 

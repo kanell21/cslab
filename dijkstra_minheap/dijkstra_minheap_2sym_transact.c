@@ -333,11 +333,12 @@ void dijkstra(struct Graph* graph, int src)
         int u = minHeapNode->v; // Store the extracted vertex number
         // Traverse through all adjacent vertices of u (the extracted
         // vertex) and update their distance values
-
+/*
         __builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
         for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
-        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1); //<<<<<<<<<<<<<<<=========================P R E F E T C H I N G ================>>>>>>>>>>>>>
+        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1); //<<<<<<<<<<<<<<<==================P R E F E T C H I N G ================>>>>>>>>>>>>>
         }
+*/
         
         int nb=graph->array[u].neighboors;
         #ifdef UPDATE
@@ -345,7 +346,7 @@ void dijkstra(struct Graph* graph, int src)
 		#endif	
         
         if(nodes[u].dist != INT_MAX){
-            #pragma omp parallel for private(i) schedule(static,40)
+            #pragma omp parallel for private(i) 
             for(int i=0;i<nb;i++)
             {
                 int v = graph->array[u].head[i].dest ;

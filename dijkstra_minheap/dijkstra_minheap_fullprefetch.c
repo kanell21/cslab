@@ -305,11 +305,43 @@ void dijkstra(struct Graph* graph, int src)
         int u = minHeapNode->v; // Store the extracted vertex number
         // Traverse through all adjacent vertices of u (the extracted
         // vertex) and update their distance values
+
+    //<====================================================P R E F E T C H  0  S P E C U L A T I V E L Y ======================================================================>
+
         __builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
+        __builtin_prefetch (&nodes[u], 1, 1);
         for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
         __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1);
         }
+
+
+    //<===============================================================================================>
+
+
+
+
+    //<<<<<<<<<<<<<<=======================================P R E F E T C H     R A N D O M L Y     B E T W E E N   0   A N D   1     =================================>>>>>>>>>>
+
+
+        /*
+        int random=rand()%2;
         
+        if (random==1){
+                for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
+                     __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1);
+                }   
+            }
+        else {
+
+                for(i=0; i< graph->array[minHeap->array[1]->v].neighboors;i++){
+                     __builtin_prefetch (&nodes[graph->array[minHeap->array[1]->v].head[i].dest], 1, 1);
+                }
+            }
+            */
+        //==========================================================================================================================================================================>
+
+
+
         int nb=graph->array[u].neighboors;
         #ifdef UPDATE
         	gettimeofday(&ts,NULL);

@@ -7,6 +7,12 @@
 #include <string.h> 
 #include <sys/time.h>
 #include <stdbool.h>
+#include <omp.h>
+#include <immintrin.h>
+#include "transaction.h"
+
+
+omp_lock_t writelock;
 // A structure to represent a node in adjacency list
 struct node_chars {
     int pos;
@@ -246,15 +252,37 @@ double total_insert_time=0;
 double total_update_time=0;
 void dijkstra(struct Graph* graph, int src)
 {
-//In order to check neighbours' heterogenia
-	    
+
+
+//<<<<<<<<<<<<<<<<================================= T R A N S A C T I O N A L     M E M O R Y         D E F I N I T I O N S =======================>>>>>>>>>>>>>>>>>>>>
+
+    count_abort_t *counter;
+    int count;
+	counter = (count_abort_t *) malloc(sizeof(count_abort_t));
+    counter->conflicts = 0; 
+    counter->capacity = 0;  
+    counter->explicits = 0;
+    counter->debug = 0;
+    counter->nested = 0;
+    counter->retry = 0;
+    count = 0; 
+
+
+//<<<<<<<<<<<<<<<<====================================================================================================================================>>>>>>>>>>>>>>>>>>>>
+
+
+
     int i;
     double time;            //variables for timing
     struct timeval ts,tf;
     int V = graph->V;// Get the number of vertices in graph
     nodes=malloc(V*sizeof(struct node_chars));
 
+    omp_set_num_threads(2);
+    omp_init_lock(&writelock);
+    
     // minHeap represents set E
+
     struct MinHeap* minHeap = createMinHeap(V);
     
     // Initialize min heap with all vertices. dist value of all vertices 
@@ -305,10 +333,12 @@ void dijkstra(struct Graph* graph, int src)
         int u = minHeapNode->v; // Store the extracted vertex number
         // Traverse through all adjacent vertices of u (the extracted
         // vertex) and update their distance values
+/*
         __builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
         for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
-        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1);
+        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1); //<<<<<<<<<<<<<<<=========================P R E F E T C H I N G ================>>>>>>>>>>>>>
         }
+*/
         
         int nb=graph->array[u].neighboors;
         #ifdef UPDATE
@@ -316,6 +346,7 @@ void dijkstra(struct Graph* graph, int src)
 		#endif	
         
         if(nodes[u].dist != INT_MAX){
+            #pragma omp parallel for private(i) 
             for(int i=0;i<nb;i++)
             {
                 int v = graph->array[u].head[i].dest ;
@@ -331,7 +362,9 @@ void dijkstra(struct Graph* graph, int src)
                     #ifdef DECREASE
              	       gettimeofday(&ts,NULL);	
     				#endif
+                    begin_transaction(2, &writelock, counter);
                     decreaseKey(minHeap, v, nodes[v].dist);
+                    end_transaction(&writelock,counter);
                     #ifdef DECREASE
      	                gettimeofday(&tf,NULL);
             	        time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
@@ -340,6 +373,7 @@ void dijkstra(struct Graph* graph, int src)
                 }
                 
             }
+
         }
      #ifdef UPDATE
         gettimeofday(&tf,NULL);

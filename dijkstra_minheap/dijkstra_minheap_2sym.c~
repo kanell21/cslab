@@ -7,6 +7,7 @@
 #include <string.h> 
 #include <sys/time.h>
 #include <stdbool.h>
+#include <omp.h>
 // A structure to represent a node in adjacency list
 struct node_chars {
     int pos;
@@ -20,12 +21,12 @@ struct AdjListNode
 {
     int dest;
     int weight;
-    struct AdjListNode* next;
 };
  
 // A structure to represent an adjacency liat
 struct AdjList
 {
+    int neighboors;
     struct AdjListNode *head;  // pointer to head node of list
 };
  
@@ -44,7 +45,6 @@ struct AdjListNode* newAdjListNode(int dest, int weight)
             (struct AdjListNode*) malloc(sizeof(struct AdjListNode));
     newNode->dest = dest;
     newNode->weight = weight;
-    newNode->next = NULL;
     return newNode;
 }
  
@@ -58,8 +58,9 @@ struct Graph* createGraph(int V)
     graph->array = (struct AdjList*) malloc(V * sizeof(struct AdjList));
  
      // Initialize each adjacency list as empty by making head as NULL
-    for (int i = 0; i < V; ++i)
-        graph->array[i].head = NULL;
+    for (int i = 0; i < V; ++i){      
+      graph->array[i].head = NULL;
+        graph->array[i].neighboors=0;}
  
     return graph;
 }
@@ -70,13 +71,18 @@ void addEdge(struct Graph* graph, int src, int dest, int weight)
     // Add an edge from src to dest.  A new node is added to the adjacency
     // list of src.  The node is added at the begining
     struct AdjListNode* newNode = newAdjListNode(dest, weight);
-    newNode->next = graph->array[src].head;
-    graph->array[src].head = newNode;
+    if(graph->array[src].head==NULL) graph->array[src].head=(struct AdjListNode *)malloc(sizeof(struct AdjListNode));
+    else graph->array[src].head=(struct AdjListNode *)realloc(graph->array[src].head,(graph->array[src].neighboors+1)*sizeof(struct AdjListNode));
+    graph->array[src].head[graph->array[src].neighboors] = *newNode;
+    graph->array[src].neighboors++;
  
     // Since graph is undirected, add an edge from dest to src also
     newNode = newAdjListNode(src, weight);
-    newNode->next = graph->array[dest].head;
-    graph->array[dest].head = newNode;
+     if(graph->array[dest].head==NULL) graph->array[dest].head=(struct AdjListNode *)malloc(sizeof(struct AdjListNode));
+    else graph->array[dest].head=(struct AdjListNode *)realloc(graph->array[dest].head,(graph->array[dest].neighboors+1)*sizeof(struct AdjListNode));
+    graph->array[dest].head[graph->array[dest].neighboors] = *newNode;
+    graph->array[dest].neighboors++;
+    
 }
  
 // Structure to represent a min heap node
@@ -191,12 +197,12 @@ struct MinHeapNode* extractMin(struct MinHeap* minHeap)
 }
  int ups_decrease_key=0;
  int decrease_keys=0;
-// Function to decreasy dist value of a given vertex v. This function
+// Function to decreasy dist vaaue of a given vertex v. This function
 // uses pos[] of min heap to get the current index of node in min heap
 void decreaseKey(struct MinHeap* minHeap, int v, int dist)
 {
     // Get the index of v in  heap array
-    int i = minHeap->pos[v];
+    int i = nodes[v].pos;
      decrease_keys++;
     // Get the node and update its dist value
     minHeap->array[i]->dist = dist;
@@ -220,7 +226,7 @@ void decreaseKey(struct MinHeap* minHeap, int v, int dist)
 // 'v' is in min heap or not
 bool isInMinHeap(struct MinHeap *minHeap, int v)
 {
-   if (minHeap->pos[v] < minHeap->size)
+   if (nodes[v].pos < minHeap->size)
      return true;
    return false;
 }
@@ -243,12 +249,14 @@ void dijkstra(struct Graph* graph, int src)
 {
 //In order to check neighbours' heterogenia
 	    
-
+    int i;
     double time;            //variables for timing
     struct timeval ts,tf;
     int V = graph->V;// Get the number of vertices in graph
     nodes=malloc(V*sizeof(struct node_chars));
-
+    omp_lock_t writelock;
+    omp_set_num_threads(2);
+    omp_init_lock(&writelock);
     // minHeap represents set E
     struct MinHeap* minHeap = createMinHeap(V);
     
@@ -260,14 +268,14 @@ void dijkstra(struct Graph* graph, int src)
 
     for (int v = 0; v < V; ++v)
     {
-        nodes[v].dest= INT_MAX;
-        minHeap->array[v] = newMinHeapNode(v, dist[v]);
+        nodes[v].dist= INT_MAX;
+        minHeap->array[v] = newMinHeapNode(v, nodes[v].dist);
         nodes[v].pos = v;
         nodes[v].prev=0;
     }
     
     // Make dist value of src vertex as 0 so that it is extracted first
-    minHeap->array[src] = newMinHeapNode(src, dist[src]);
+    minHeap->array[src] = newMinHeapNode(src, nodes[src].dist);
     nodes[src].pos = src;
     nodes[src].dist= 0;
     decreaseKey(minHeap, src, nodes[src].dist);
@@ -300,33 +308,46 @@ void dijkstra(struct Graph* graph, int src)
         int u = minHeapNode->v; // Store the extracted vertex number
         // Traverse through all adjacent vertices of u (the extracted
         // vertex) and update their distance values
-        struct AdjListNode* pCrawl = graph->array[u].head;
+
+        /*__builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
+        for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
+        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1); //<<<<<<<<<<<<<<<=========================P R E F E T C H I N G ================>>>>>>>>>>>>>
+        }*/
+        
+        int nb=graph->array[u].neighboors;
         #ifdef UPDATE
         	gettimeofday(&ts,NULL);
 		#endif	
-        while (pCrawl != NULL)
-        {
-            int v = pCrawl->dest;
- 
-            // If shortest distance to v is not finalized yet, and distance to v
-            // through u is less than its previously calculated distance
-            if (isInMinHeap(minHeap, v) && nodes[u].dist != INT_MAX && 
-                                          pCrawl->weight + nodes[u].dist < nodes[v].dist)
+        
+        if(nodes[u].dist != INT_MAX){
+            #pragma omp parallel for private(i) 
+            for(int i=0;i<nb;i++)
             {
-                nodes[v].dist = nodes[u].dist + pCrawl->weight;
-                nodes[v].prev=u;
-                // update distance value in min heap also
-                #ifdef DECREASE
-         	       gettimeofday(&ts,NULL);	
-				#endif
-                decreaseKey(minHeap, v, nodes[v].dist);
-                #ifdef DECREASE
- 	                gettimeofday(&tf,NULL);
-        	        time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
-                	total_decrease_time+=time;
-				#endif
+                int v = graph->array[u].head[i].dest ;
+     
+                // If shortest distance to v is not finalized yet, and distance to v
+                // through u is less than its previously calculated distance
+                if (isInMinHeap(minHeap, v) && 
+                                               graph->array[u].head[i].weight+ nodes[u].dist < nodes[v].dist)
+                {
+                    nodes[v].dist = nodes[u].dist + graph->array[u].head[i].weight;
+                    nodes[v].prev=u;
+                    // update distance value in min heap also
+                    #ifdef DECREASE
+             	       gettimeofday(&ts,NULL);	
+    				#endif
+                    omp_set_lock(&writelock);
+                    decreaseKey(minHeap, v, nodes[v].dist);
+                    omp_unset_lock(&writelock);
+                    #ifdef DECREASE
+     	                gettimeofday(&tf,NULL);
+            	        time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
+                    	total_decrease_time+=time;
+    				#endif
+                }
+                
             }
-            pCrawl = pCrawl->next;
+
         }
      #ifdef UPDATE
         gettimeofday(&tf,NULL);

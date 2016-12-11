@@ -255,7 +255,7 @@ void dijkstra(struct Graph* graph, int src)
     int V = graph->V;// Get the number of vertices in graph
     nodes=malloc(V*sizeof(struct node_chars));
     omp_lock_t writelock;
-    omp_set_num_threads(20);
+    omp_set_num_threads(2);
     omp_init_lock(&writelock);
     // minHeap represents set E
     struct MinHeap* minHeap = createMinHeap(V);

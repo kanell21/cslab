@@ -12,7 +12,7 @@ struct node_chars {
     int pos;
     int dist;
     int prev;
-    bool visited;
+
 }*nodes;   ///array of structs for cache efficiency
 
 
@@ -186,7 +186,6 @@ struct MinHeapNode* extractMin(struct MinHeap* minHeap)
  
     // Update position of last node
     nodes[root->v].pos = minHeap->size-1;
-    printf("root->v=%d\n",root->v);
     nodes[lastNode->v].pos = 0;
  
     // Reduce heap size and heapify root
@@ -221,56 +220,22 @@ void decreaseKey(struct MinHeap* minHeap, int v, int dist)
         i = (i - 1) / 2;
     }
 }
-
-void MinHeap_insert(struct MinHeap* minHeap, struct MinHeapNode *inode)
-{
-    /* i - insertion point
-     * j - parent of i
-     * y - parent's entry in the heap.
-     */
-    int i, j;
-    struct MinHeapNode *ParentNode;
-   // printf("About to Insert Vertex %d with dist= %d \n",inode->v,inode->dist);
-    /* i initially indexes the new entry at the bottom of the heap. */
-    i = (minHeap->size)++;
-   // printf("Vertex %d Initial position= %d \n",inode->v,i);
-
-    /* Stop if the insertion point reaches the top of the heap. */
-    while(i >= 1) {
-        /* j indexes the parent of i.  y is the parent's entry. */
-        j = i / 2;
-        ParentNode = minHeap->array[j];
-
-        /* We have the correct insertion point when the item's key is >= parent
-         * Otherwise we move the parent down and insertion point up.
-         */
-
-        if(inode->dist >= ParentNode->dist) break;
-
-        minHeap->array[i] = ParentNode;
-        nodes[ParentNode->v].pos = i;
-        i = j;
-    }
-
-    /* Insert the new item at the insertion point found. */
-    minHeap->array[i] = inode;
-    nodes[inode->v].pos = i;
-} 
+ 
 // A utility function to check if a given vertex
 // 'v' is in min heap or not
 bool isInMinHeap(struct MinHeap *minHeap, int v)
 {
-   if (nodes[v].pos!=-1)
+   if (nodes[v].pos < minHeap->size)
      return true;
    return false;
 }
  
 // A utility function used to print the solution
-void printArr(int n)
+void printArr(int dist[], int n)
 {
     printf("Vertex   Distance from Source\n");
     for (int i = 0; i < n; ++i)
-        printf("%d \t\t %d\n", i, nodes[i].dist);
+        printf("%d \t\t %d\n", i, dist[i]);
 }
  
 // The main function that calulates distances of shortest paths from src to all
@@ -283,7 +248,7 @@ void dijkstra(struct Graph* graph, int src)
 {
 //In order to check neighbours' heterogenia
 	    
-
+    int i;
     double time;            //variables for timing
     struct timeval ts,tf;
     int V = graph->V;// Get the number of vertices in graph
@@ -301,22 +266,19 @@ void dijkstra(struct Graph* graph, int src)
     for (int v = 0; v < V; ++v)
     {
         nodes[v].dist= INT_MAX;
-        //minHeap->array[v] = newMinHeapNode(v, nodes[v].dist);
-        //nodes[v].pos = v;
-        nodes[v].pos=-1;
+        minHeap->array[v] = newMinHeapNode(v, nodes[v].dist);
+        nodes[v].pos = v;
         nodes[v].prev=0;
-        nodes[v].visited=false;
     }
     
     // Make dist value of src vertex as 0 so that it is extracted first
-    minHeap->array[src] = newMinHeapNode(src, 0);
+    minHeap->array[src] = newMinHeapNode(src, nodes[src].dist);
     nodes[src].pos = src;
     nodes[src].dist= 0;
-    minHeap->size=1;
-    //decreaseKey(minHeap, src, nodes[src].dist);
+    decreaseKey(minHeap, src, nodes[src].dist);
     
     // Initially size of min heap is equal to V
-    
+    minHeap->size = V;
     #ifdef INSERT
         	gettimeofday(&tf,NULL);
         	time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
@@ -335,71 +297,107 @@ void dijkstra(struct Graph* graph, int src)
         	gettimeofday(&ts,NULL);
 		#endif
         struct MinHeapNode* minHeapNode = extractMin(minHeap);
-	extracts++;
-	printf("Extracts=%d",extracts);
         #ifdef EXTRACT
      	        gettimeofday(&tf,NULL);
         		time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
         		total_extract_time+=time;
 	    #endif
-        int u = minHeapNode->v; 
-        nodes[u].visited=true;
-
-        // Store the extracted vertex number
+        int u = minHeapNode->v; // Store the extracted vertex number
         // Traverse through all adjacent vertices of u (the extracted
         // vertex) and update their distance values
-        //__builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
+
+    //<====================================================P R E F E T C H  0  S P E C U L A T I V E L Y ======================================================================>
+
+        __builtin_prefetch (graph->array[minHeap->array[0]->v].head, 1, 1);
+        __builtin_prefetch (&nodes[u], 1, 1);
+
+       /* for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
+        __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1);
+        }*/
+
+
+        int min=nodes[minHeap->array[0]->v].dist;
+        int min_id=minHeap->array[0]->v;
+    //<===============================================================================================>
+
+
+
+
+    //<<<<<<<<<<<<<<=======================================P R E F E T C H     R A N D O M L Y     B E T W E E N   0   A N D   1     =================================>>>>>>>>>>
+
+
+        /*
+        int random=rand()%2;
+        
+        if (random==1){
+                for(i=0; i< graph->array[minHeap->array[0]->v].neighboors;i++){
+                     __builtin_prefetch (&nodes[graph->array[minHeap->array[0]->v].head[i].dest], 1, 1);
+                }   
+            }
+        else {
+
+                for(i=0; i< graph->array[minHeap->array[1]->v].neighboors;i++){
+                     __builtin_prefetch (&nodes[graph->array[minHeap->array[1]->v].head[i].dest], 1, 1);
+                }
+            }
+            */
+        //==========================================================================================================================================================================>
+
+
+
         int nb=graph->array[u].neighboors;
-        //printf("Extracted vertex %d with value=%d has %d neighboors \n",u,nodes[u].dist,nb);
         #ifdef UPDATE
         	gettimeofday(&ts,NULL);
 		#endif	
         
-        
+        if(nodes[u].dist != INT_MAX){
+        	
             for(int i=0;i<nb;i++)
             {
                 int v = graph->array[u].head[i].dest ;
-                //printf("Neigbour %d of %d \n",v,u);
-                if(nodes[v].visited==false){
-                    if(!isInMinHeap(minHeap,v)){
-                     //printf("Inserted Vertex %d \n",v);   
-                     MinHeap_insert(minHeap,newMinHeapNode(v,nodes[u].dist+graph->array[u].head[i].weight));
-                     nodes[v].dist=nodes[u].dist+graph->array[u].head[i].weight;
-                    }
-                    // If shortest distance to v is not finalized yet, and distance to v
-                    // through u is less than its previously calculated distance
-                    else if (graph->array[u].head[i].weight+ nodes[u].dist < nodes[v].dist)
-                    {
-                        nodes[v].dist = nodes[u].dist + graph->array[u].head[i].weight;
-                        //printf("About to Decrease key of Vertex %d to value %d \n",v,nodes[v].dist);
+     
+                // If shortest distance to v is not finalized yet, and distance to v
+                // through u is less than its previously calculated distance
+                if (isInMinHeap(minHeap, v) && 
+                                               graph->array[u].head[i].weight+ nodes[u].dist < nodes[v].dist)
+                {
+                    nodes[v].dist = nodes[u].dist + graph->array[u].head[i].weight;
 
-                        nodes[v].prev=u;
-                        // update distance value in min heap also
-                        #ifdef DECREASE
-                 	       gettimeofday(&ts,NULL);	
-        				#endif
-                        decreaseKey(minHeap, v, nodes[v].dist);
-                        #ifdef DECREASE
-         	                gettimeofday(&tf,NULL);
-                	        time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
-                        	total_decrease_time+=time;
-        				#endif
+                    if(nodes[v].dist < min){ 
+                    	min=nodes[v].dist; 
+                    	min_id=v;
                     }
-                
+
+                    nodes[v].prev=u;
+                    // update distance value in min heap also
+                    #ifdef DECREASE
+             	       gettimeofday(&ts,NULL);	
+    				#endif
+                    decreaseKey(minHeap, v, nodes[v].dist);
+                    #ifdef DECREASE
+     	                gettimeofday(&tf,NULL);
+            	        time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
+                    	total_decrease_time+=time;
+    				#endif
                 }
+                
             }
-        
+        }
      #ifdef UPDATE
         gettimeofday(&tf,NULL);
         time=(tf.tv_sec-ts.tv_sec)+(tf.tv_usec-ts.tv_usec)*0.000001;
         total_update_time+=time;
 	 #endif
+
+        for(i=0; i< graph->array[min_id].neighboors;i++){
+        __builtin_prefetch (&nodes[graph->array[min_id].head[i].dest], 1, 3);
+    		}
+
     }
-    // printArr(V);
-} 
+ 
     // print the calculated shortest distances
    // printArr(dist, V);
-
+}
  
  
 // Driver program to test above functions
@@ -419,7 +417,7 @@ int main(int argc,char ** argv)
     double time;            //variables for timing
     struct timeval ts,tf;
     int edges=0;
-          while ( fgets ( line, sizeof line, fp ) != NULL ) 
+          while ( fgets ( line, sizeof line, fp ) != NULL ) /* read a line */
       {
         token=strtok(line," ");
         //printf("Token=%s\n",token);
@@ -437,7 +435,7 @@ int main(int argc,char ** argv)
            token=strtok(NULL," ");
           // printf("Token=%s\n",token);
            V=atoi(token);
-           printf("V=%d\n",V);
+          // printf("V=%d",V);
            graph = createGraph(V);
         }
         else if(strcmp(token,"a")==0)
@@ -497,9 +495,7 @@ int main(int argc,char ** argv)
     #endif
     printf("Vertices:%d:Edges:%d\n",V,edges);
     printf("Decrease_keys=%d ,Ups_decrease_key=%d \n",decrease_keys,ups_decrease_key);
-
     //printf("Time to decrease=%lf \n",total_decrease_time);
    // printf("Update time: %lf",total_update_time);
-
+    return 0;
 }
-
