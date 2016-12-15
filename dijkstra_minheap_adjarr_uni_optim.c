@@ -221,7 +221,25 @@ void decreaseKey(struct MinHeap* minHeap, int v, int dist)
         i = (i - 1) / 2;
     }
 }
+/*
+void bh_min_insert(bheap_t *heap, bh_node_t *node)
+{
+	unsigned int i;
+	bh_node_t *a = heap->node_array;
 
+	heap->curr_size++;
+	i=heap->curr_size-1;
+	while(i>0 && a[bh_parent(i)].key >= node->key ){
+		bh_swap_nodes(heap, i, bh_parent(i));
+		i = bh_parent(i);
+	}
+
+	a[i].key = node->key;
+	a[i].vertex_id = node->vertex_id;
+	heap->where_in_heap[node->vertex_id].index = i;
+}
+
+*/
 void MinHeap_insert(struct MinHeap* minHeap, struct MinHeapNode *inode)
 {
     /* i - insertion point
