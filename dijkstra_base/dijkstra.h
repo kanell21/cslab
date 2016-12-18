@@ -16,4 +16,5 @@ struct node_chars {
 };
 
 extern void dijkstra(struct Graph* graph, int src);
+extern void dijkstra_uni(struct Graph* graph,int src);
 #endif
