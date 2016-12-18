@@ -1,2 +1,2 @@
-asjj# cslab
+# cslab
 Dijkstra's algorithm implementation
