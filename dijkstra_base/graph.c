@@ -56,7 +56,7 @@ struct Graph* graph_read(const char *filename)
             weight=atof(token);
             //printf("Weight=%d\n",weight);
             edges++;
-	    addEdge(graph, source, dest, weight);
+	    addEdge(graph, source - 1, dest - 1, weight);
           
         }
       counter++;
